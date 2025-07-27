@@ -12,6 +12,7 @@ from .config import settings
 from .db import init_database
 from .tasks import run_discovery, run_processing, run_retry, get_processing_stats
 from .search_extractor import extract_and_save_urls
+from .fast_processor import FastAMBOSSProcessor
 
 app = typer.Typer(
     name="amboss",
@@ -332,6 +333,57 @@ def search_extract(
             raise typer.Exit(1)
     
     asyncio.run(_search_extract())
+
+
+@app.command()
+def fast_process(
+    url_file: str = typer.Option(
+        "amboss_all_articles_links.txt",
+        "--file",
+        "-f",
+        help="File containing article URLs"
+    ),
+    limit: Optional[int] = typer.Option(
+        None,
+        "--limit",
+        "-l",
+        help="Limit number of articles to process (for testing)"
+    ),
+    log_level: str = typer.Option("INFO", "--log-level", "-l"),
+    log_format: str = typer.Option("json", "--log-format", "-f")
+):
+    """Fast processing of AMBOSS articles using existing URL list."""
+    setup_logging(log_level, log_format)
+    
+    async def _fast_process():
+        try:
+            typer.echo(f"🚀 Starting fast processing from: {url_file}")
+            if limit:
+                typer.echo(f"📊 Limited to first {limit} articles")
+            
+            processor = FastAMBOSSProcessor()
+            urls = processor.extract_urls_from_file(url_file)
+            
+            if not urls:
+                typer.echo("❌ No URLs found. Exiting.")
+                raise typer.Exit(1)
+            
+            result = await processor.process_all_articles(urls, limit)
+            
+            typer.echo("\n🎉 Processing completed!")
+            typer.echo(f"📊 Results:")
+            typer.echo(f"  Total URLs: {result['total']}")
+            typer.echo(f"  Processed: {result['processed']}")
+            typer.echo(f"  Successful: {result['successful']}")
+            typer.echo(f"  Failed: {result['failed']}")
+            typer.echo(f"  Success Rate: {result['success_rate']:.1%}")
+            
+        except Exception as e:
+            logger.error("Fast processing failed", error=str(e))
+            typer.echo(f"❌ Error: {e}")
+            raise typer.Exit(1)
+    
+    asyncio.run(_fast_process())
 
 
 @app.command()

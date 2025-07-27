@@ -157,6 +157,16 @@ credentials.json
 *.tiff
 *.webp
 
+# Debug files
+debug_*.png
+debug_*.jpg
+debug_*.log
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
 # Docker
 .dockerignore
 

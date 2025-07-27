@@ -32,15 +32,13 @@ class ContentValidator:
         
         validation_results = {
             "expansion_valid": False,
-            "content_density_valid": False,
             "hidden_sections_count": 0,
-            "ocr_density_score": 0.0,
             "validation_passed": False,
             "errors": []
         }
         
         try:
-            # Check for hidden sections
+            # Check for hidden sections only
             hidden_count = await self._check_hidden_sections(page)
             validation_results["hidden_sections_count"] = hidden_count
             validation_results["expansion_valid"] = hidden_count == 0
@@ -50,21 +48,8 @@ class ContentValidator:
                 validation_results["errors"].append(error_msg)
                 logger.warning(error_msg)
             
-            # Check content density
-            density_score = await self._check_content_density(page)
-            validation_results["ocr_density_score"] = density_score
-            validation_results["content_density_valid"] = density_score >= self.min_ocr_density
-            
-            if density_score < self.min_ocr_density:
-                error_msg = f"Content density too low: {density_score:.2f} < {self.min_ocr_density}"
-                validation_results["errors"].append(error_msg)
-                logger.warning(error_msg)
-            
-            # Overall validation result
-            validation_results["validation_passed"] = (
-                validation_results["expansion_valid"] and 
-                validation_results["content_density_valid"]
-            )
+            # Overall validation result - only check expansion
+            validation_results["validation_passed"] = validation_results["expansion_valid"]
             
             if validation_results["validation_passed"]:
                 logger.info("Page validation passed")

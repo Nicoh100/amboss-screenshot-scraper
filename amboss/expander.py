@@ -37,6 +37,9 @@ class ContentExpander:
         """Expand all collapsed sections using multiple strategies."""
         logger.info("Starting content expansion")
         
+        # Handle cookie consent first
+        await self._handle_cookie_consent(page)
+        
         # Strategy 1: Click-based expansion
         await self._click_expansion_buttons(page)
         
@@ -50,6 +53,35 @@ class ContentExpander:
         await self._verify_expansion(page)
         
         logger.info("Content expansion completed")
+    
+    async def _handle_cookie_consent(self, page: Page) -> None:
+        """Handle cookie consent popups."""
+        try:
+            # Common cookie consent selectors
+            consent_selectors = [
+                '[data-testid="cookie-banner"] button',
+                '.cookie-banner button',
+                '[data-testid="consent-accept"]',
+                'button:has-text("Accept")',
+                'button:has-text("Akzeptieren")',
+                'button:has-text("Accept All")',
+                'button:has-text("Alle akzeptieren")'
+            ]
+            
+            for selector in consent_selectors:
+                try:
+                    element = await page.wait_for_selector(selector, timeout=3000)
+                    if element:
+                        await element.click()
+                        logger.info(f"Clicked cookie consent: {selector}")
+                        await page.wait_for_timeout(1000)  # Wait for popup to disappear
+                        break
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Cookie consent handling failed: {e}")
+            # Not critical, continue anyway
     
     async def _click_expansion_buttons(self, page: Page) -> None:
         """Click all visible expansion buttons."""

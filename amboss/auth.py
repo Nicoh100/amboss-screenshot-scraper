@@ -91,19 +91,24 @@ class AuthManager:
         
         return context
     
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=2))
+    @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1))
     async def verify_auth(self, page: Page) -> bool:
         """Verify that authentication is working by checking for login indicators."""
         try:
-            # Navigate to a protected page
-            await page.goto(f"{settings.base_url}/de", wait_until="networkidle")
+            # Navigate to a protected page with shorter timeout
+            await page.goto(f"{settings.base_url}/de", wait_until="domcontentloaded", timeout=15000)
+            
+            # Handle cookie consent popup if it appears
+            await self._handle_cookie_consent(page)
             
             # Check for login indicators
             login_indicators = [
                 "text=Anmelden",
                 "text=Login",
                 "[data-testid='login-button']",
-                ".login-button"
+                ".login-button",
+                'input[name="email"]',
+                'input[name="password"]'
             ]
             
             for indicator in login_indicators:
@@ -120,7 +125,10 @@ class AuthManager:
                 "[data-testid='user-menu']",
                 ".user-menu",
                 "text=Profil",
-                "text=Profile"
+                "text=Profile",
+                "[data-testid='search-bar']",
+                'input[placeholder*="Finde"]',
+                "[data-testid='article-body']"
             ]
             
             for indicator in auth_indicators:
@@ -138,7 +146,37 @@ class AuthManager:
             
         except Exception as e:
             logger.error("Failed to verify authentication", error=str(e))
-            raise
+            # Don't raise, just return False to allow retry
+            return False
+    
+    async def _handle_cookie_consent(self, page: Page) -> None:
+        """Handle cookie consent popups."""
+        try:
+            # Common cookie consent selectors
+            consent_selectors = [
+                '[data-testid="cookie-banner"] button',
+                '.cookie-banner button',
+                '[data-testid="consent-accept"]',
+                'button:has-text("Accept")',
+                'button:has-text("Akzeptieren")',
+                'button:has-text("Accept All")',
+                'button:has-text("Alle akzeptieren")'
+            ]
+            
+            for selector in consent_selectors:
+                try:
+                    element = await page.wait_for_selector(selector, timeout=3000)
+                    if element:
+                        await element.click()
+                        logger.info(f"Clicked cookie consent: {selector}")
+                        await page.wait_for_timeout(1000)  # Wait for popup to disappear
+                        break
+                except:
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Cookie consent handling failed: {e}")
+            # Not critical, continue anyway
     
     async def refresh_auth(self, credentials_path: Optional[Path] = None) -> bool:
         """Refresh authentication by logging in with credentials."""

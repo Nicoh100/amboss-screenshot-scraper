@@ -132,8 +132,7 @@ class ScreenshotShooter:
             await page.screenshot(
                 path=str(filepath),
                 clip=clip,
-                type="png",
-                quality=settings.screenshot_quality
+                type="png"
             )
             
             # Post-process image
@@ -160,7 +159,6 @@ class ScreenshotShooter:
             await page.screenshot(
                 path=str(filepath),
                 type="png",
-                quality=settings.screenshot_quality,
                 full_page=True
             )
             
