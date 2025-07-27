@@ -11,6 +11,7 @@ from structlog import get_logger
 from .config import settings
 from .db import init_database
 from .tasks import run_discovery, run_processing, run_retry, get_processing_stats
+from .search_extractor import extract_and_save_urls
 
 app = typer.Typer(
     name="amboss",
@@ -285,6 +286,52 @@ def auth(
             raise typer.Exit(1)
     
     asyncio.run(_auth())
+
+
+@app.command()
+def search_extract(
+    search_url: str = typer.Option(
+        "https://next.amboss.com/de/search?q=&v=article",
+        "--url",
+        "-u",
+        help="Search URL to extract article URLs from"
+    ),
+    output_file: str = typer.Option(
+        "amboss-article-urls.md",
+        "--output",
+        "-o",
+        help="Output file for extracted URLs"
+    ),
+    log_level: str = typer.Option("INFO", "--log-level", "-l"),
+    log_format: str = typer.Option("json", "--log-format", "-f")
+):
+    """Extract article URLs from AMBOSS search results page."""
+    setup_logging(log_level, log_format)
+    
+    async def _search_extract():
+        try:
+            typer.echo(f"Extracting article URLs from: {search_url}")
+            typer.echo(f"Output will be saved to: {output_file}")
+            
+            urls = await extract_and_save_urls(search_url, output_file)
+            
+            typer.echo(f"✅ Successfully extracted {len(urls)} unique article URLs")
+            typer.echo(f"📄 Results saved to: {output_file}")
+            
+            # Show preview of first few URLs
+            if urls:
+                typer.echo("\n📋 First 5 URLs:")
+                for url in urls[:5]:
+                    typer.echo(f"  {url}")
+                if len(urls) > 5:
+                    typer.echo(f"  ... and {len(urls) - 5} more")
+            
+        except Exception as e:
+            logger.error("Search extraction failed", error=str(e))
+            typer.echo(f"❌ Error: {e}")
+            raise typer.Exit(1)
+    
+    asyncio.run(_search_extract())
 
 
 @app.command()
