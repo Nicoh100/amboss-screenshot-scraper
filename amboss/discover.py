@@ -49,9 +49,13 @@ class URLDiscoverer:
             raise
     
     def extract_slugs(self, html: str, base_url: str) -> List[str]:
-        """Extract article slugs from HTML content."""
+        """Extract article slugs from HTML content using simple string splitting."""
         slugs = []
-        for match in self.slug_pattern.finditer(html):
+        # Simple approach: look for article URLs in the HTML
+        import re
+        # Find all URLs that contain /article/ or /knowledge/
+        url_pattern = re.compile(r'https://next\.amboss\.com/de/(?:article|knowledge)/[a-zA-Z0-9\-]+')
+        for match in url_pattern.finditer(html):
             full_url = match.group(0)
             if full_url not in self.discovered_urls:
                 self.discovered_urls.add(full_url)
@@ -146,16 +150,14 @@ class URLDiscoverer:
         async with self:
             async with DatabaseManager() as db:
                 async for url in self.discover_from_start_urls(start_urls):
-                    # Extract slug from URL
-                    match = self.slug_pattern.match(url)
-                    if match:
-                        slug = match.group(1)
-                        
-                        # Add to database
-                        success = await db.add_url(slug, url)
-                        if success:
-                            discovered_urls.append(url)
-                            logger.info("Discovered article", slug=slug, url=url)
+                    # Extract slug from URL using simple string splitting
+                    slug = url.split("/")[-1]
+                    
+                    # Add to database
+                    success = await db.add_url(slug, url)
+                    if success:
+                        discovered_urls.append(url)
+                        logger.info("Discovered article", slug=slug, url=url)
         
         logger.info("Discovery completed", total_discovered=len(discovered_urls))
         return discovered_urls

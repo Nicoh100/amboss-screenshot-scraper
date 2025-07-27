@@ -197,11 +197,12 @@ class ScrapingTask:
         """Navigate to the target page with retry logic."""
         logger.debug("Navigating to page", url=url)
         
-        await page.goto(url, wait_until="networkidle", timeout=30000)
+        # Use domcontentloaded instead of networkidle to avoid timeouts
+        await page.goto(url, wait_until="domcontentloaded", timeout=15000)
         
         # Wait for content to load
         await page.wait_for_load_state("domcontentloaded")
-        await asyncio.sleep(2)  # Additional wait for dynamic content
+        await asyncio.sleep(3)  # Additional wait for dynamic content
     
     async def _expand_content(self, page: Page) -> None:
         """Expand all collapsed content on the page."""

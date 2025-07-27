@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     # AMBOSS URLs
     base_url: str = Field(default="https://next.amboss.com", description="AMBOSS base URL")
     article_pattern: str = Field(
-        default=r"https://next\.amboss\.com/de/(?:article|knowledge)/([a-z0-9-]+)",
+        default=r"https://next\.amboss\.com/de/(?:article|knowledge)/([a-zA-Z0-9\-]+)",
         description="Regex pattern for article URLs"
     )
     

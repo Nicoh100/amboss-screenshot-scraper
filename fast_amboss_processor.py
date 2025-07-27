@@ -194,7 +194,7 @@ async def main():
             return 1
         
         # Process articles (you can set a limit for testing)
-        result = await processor.process_all_articles(urls, limit=3)  # Test with first 3
+        result = await processor.process_all_articles(urls, limit=1)  # Test with first 1
         # result = await processor.process_all_articles(urls)  # Process all
         
         # Print results
